@@ -314,7 +314,7 @@ lazy val rocketchip_inclusive_cache = (project in file("generators/rocket-chip-i
   .settings(libraryDependencies ++= rocketLibDeps.value)
 
 lazy val fpga_shells = (project in file("./fpga/fpga-shells"))
-  .dependsOn(rocketchip, rocketchip_blocks)
+  .dependsOn(testchipip, rocketchip, rocketchip_blocks)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
