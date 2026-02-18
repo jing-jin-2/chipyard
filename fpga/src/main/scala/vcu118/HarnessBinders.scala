@@ -2,6 +2,7 @@ package chipyard.fpga.vcu118
 
 import chisel3._
 import chisel3.experimental.{BaseModule}
+import org.chipsalliance.cde.config.Parameters
 
 import org.chipsalliance.diplomacy.nodes.{HeterogeneousBag}
 import freechips.rocketchip.tilelink.{TLBundle}
@@ -12,6 +13,15 @@ import sifive.blocks.devices.spi.{HasPeripherySPI, SPIPortIO}
 import chipyard._
 import chipyard.harness._
 import chipyard.iobinders._
+
+import freechips.rocketchip.subsystem._
+import freechips.rocketchip.tilelink._
+import freechips.rocketchip.devices.tilelink._
+import freechips.rocketchip.diplomacy._
+
+import testchipip.util.{ClockedIO}
+
+import freechips.rocketchip.amba.axi4.{AXI4Bundle, AXI4SlaveNode, AXI4MasterNode, AXI4EdgeParameters}
 
 /*** UART ***/
 class WithUART extends HarnessBinder({
@@ -36,6 +46,19 @@ class WithDDRMem extends HarnessBinder({
     ddrClientBundle <> port.io
   }
 })
+
+/*** AXI4 MMIO Slave ***/
+class WithMMIOSlave extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: AXI4InPort, chipId: Int) => th match {
+    case vcu118th: VCU118FPGATestHarnessImp => {
+      val axi = vcu118th.vcu118Outer.axi_mmio_slave_bb.bundle
+      axi.clock := port.io.clock
+      axi.bits.elements("0") <> port.io.bits
+    }
+    case _ =>
+  }
+})
+
 
 class WithJTAG extends HarnessBinder({
   case (th: VCU118FPGATestHarnessImp, port: JTAGPort, chipId: Int) => {

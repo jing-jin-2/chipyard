@@ -1,6 +1,7 @@
 package chipyard.fpga.vcu118
 
 import chisel3._
+import chisel3.reflect.DataMirror
 
 import freechips.rocketchip.diplomacy.{LazyModule, LazyRawModuleImp, BundleBridgeSource}
 import org.chipsalliance.cde.config.{Parameters}
@@ -8,10 +9,13 @@ import freechips.rocketchip.tilelink._
 import freechips.rocketchip.diplomacy.{IdRange, TransferSizes}
 import freechips.rocketchip.subsystem.{SystemBusKey}
 import freechips.rocketchip.prci._
+import freechips.rocketchip.amba.axi4.{AXI4Bundle, AXI4BundleParameters}
 import sifive.fpgashells.shell.xilinx._
 import sifive.fpgashells.ip.xilinx.{IBUF, PowerOnResetFPGAOnly}
 import sifive.fpgashells.shell._
 import sifive.fpgashells.clocks._
+import org.chipsalliance.diplomacy.nodes.HeterogeneousBag
+import testchipip.util.ClockedIO
 
 import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTPortIO}
 import sifive.blocks.devices.spi.{PeripherySPIKey, SPIPortIO}
@@ -37,6 +41,7 @@ class VCU118FPGATestHarness(override implicit val p: Parameters) extends VCU118S
   val sys_clock2 = Overlay(ClockInputOverlayKey, new SysClock2VCU118ShellPlacer(this, ClockInputShellInput()))
   val ddr2       = Overlay(DDROverlayKey, new DDR2VCU118ShellPlacer(this, DDRShellInput()))
 
+val mmio_slave = Overlay(MMIOSlaveOverlayKey, new MMIOSlaveVCU118ShellPlacer(this, MMIOSlaveShellInput()))
 // DOC include start: ClockOverlay
   // place all clocks in the shell
   require(dp(ClockInputOverlayKey).size >= 1)
@@ -83,6 +88,13 @@ class VCU118FPGATestHarness(override implicit val p: Parameters) extends VCU118S
     sourceId = IdRange(0, 1 << dp(ExtTLMem).get.master.idBits)
   )))))
   ddrNode := TLWidthWidget(dp(ExtTLMem).get.master.beatBytes) := ddrClient
+  
+/*** AXI4 MMIO Slave ***/
+  private val mmioAxiBundleParams = AXI4BundleParameters(addrBits = 32, dataBits = 64, idBits = 8)
+  val axi_mmio_slave_bb = BundleBridgeSource(() =>
+    new ClockedIO(new HeterogeneousBag(Seq(new AXI4Bundle(mmioAxiBundleParams))))
+  )
+  dp(MMIOSlaveOverlayKey).head.place(MMIOSlaveDesignInput(axi_mmio_slave_bb))
 
   /*** JTAG ***/
   val jtagPlacedOverlay = dp(JTAGDebugOverlayKey).head.place(JTAGDebugDesignInput())

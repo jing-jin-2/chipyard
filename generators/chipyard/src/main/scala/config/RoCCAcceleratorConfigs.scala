@@ -1,11 +1,30 @@
 package chipyard
 
 import org.chipsalliance.cde.config.{Config}
+import freechips.rocketchip.devices.tilelink.{DevNullParams, BootROMLocated}
 
 // ------------------------------
 // Configs with RoCC Accelerators
 // ------------------------------
+class WithCustomBootRom extends Config((site, here, up) => {
+  case BootROMLocated(x) => up(BootROMLocated(x), site).map { p =>
+    p.copy(hang = 0x10000, contentFileName = s"./generators/gemmini/software/gemmini-rocc-tests/build/bareMetalC/tiled_matmul_ws_full_C.bin")
+  }
+})
 
+class CustomGemminiRocketConfig extends Config(
+  new gemmini.DefaultGemminiConfig ++                            // use Gemmini systolic array GEMM accelerator
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.WithSystemBusWidth(128) ++
+  new WithCustomBootRom ++
+  new chipyard.config.AbstractConfig)
+// DOC include end: GemminiRocketConfig
+class NVDLALikeGemminiRocketConfig extends Config(
+  new gemmini.NVDLALikeGemminiConfig ++                            // use Gemmini vector engine GEMM accelerator
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.WithSystemBusWidth(128) ++
+  new chipyard.config.AbstractConfig)
+// DOC include end: GemminiRocketConfig
 // DOC include start: GemminiRocketConfig
 class GemminiRocketConfig extends Config(
   new gemmini.DefaultGemminiConfig ++                            // use Gemmini systolic array GEMM accelerator

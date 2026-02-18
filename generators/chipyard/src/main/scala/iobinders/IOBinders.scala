@@ -428,9 +428,31 @@ class WithL2FBusAXI4Punchthrough extends OverrideLazyIOBinder({
     implicit val p: Parameters = GetSystemParameters(system)
     val clockSinkNode = p(ExtIn).map(_ => ClockSinkNode(Seq(ClockSinkParameters())))
     val fbus = system.asInstanceOf[HasTileLinkLocations].locateTLBusWrapper(FBUS)
+    //system.asInstanceOf[BaseSubsystem].fbus.fixedClockNode)
     clockSinkNode.map(_ := fbus.fixedClockNode)
     def clockBundle = clockSinkNode.get.in.head._1
 
+    InModuleBody {
+      val ports: Seq[AXI4InPort] = system.l2_frontend_bus_axi4.zipWithIndex.map({ case (m, i) =>
+        val port = IO(new ClockedIO(Flipped(DataMirror.internal.chiselTypeClone[AXI4Bundle](m)))).suggestName(s"axi4_fbus_${i}")
+        m <> port.bits
+        port.clock := clockBundle.clock
+        AXI4InPort(() => port, p(ExtIn).get)
+      }).toSeq
+      (ports, Nil)
+    }
+  }
+})
+
+class WithVCU118L2FBusAXI4Punchthrough extends OverrideLazyIOBinder({
+  (system: CanHaveSlaveAXI4Port) => {
+    implicit val p: Parameters = GetSystemParameters(system)
+    val clockSinkNode = p(ExtIn).map(_ => ClockSinkNode(Seq(ClockSinkParameters())))
+   // clockSinkNode.map(_ := system.asInstanceOf[BaseSubsystem].fbus.fixedClockNode)
+        val fbus = system.asInstanceOf[HasTileLinkLocations].locateTLBusWrapper(FBUS)
+    //system.asInstanceOf[BaseSubsystem].fbus.fixedClockNode)
+    clockSinkNode.map(_ := fbus.fixedClockNode)
+    def clockBundle = clockSinkNode.get.in.head._1
     InModuleBody {
       val ports: Seq[AXI4InPort] = system.l2_frontend_bus_axi4.zipWithIndex.map({ case (m, i) =>
         val port = IO(new ClockedIO(Flipped(DataMirror.internal.chiselTypeClone[AXI4Bundle](m)))).suggestName(s"axi4_fbus_${i}")
