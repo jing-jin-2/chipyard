@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #define REG32(p, i)	((p)[(i) >> 2])
+#define REG64(p, i)     ((p)[(i)])
 
 #ifndef UART_CTRL_ADDR
   #ifndef UART_NUM

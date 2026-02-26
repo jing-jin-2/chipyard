@@ -34,6 +34,7 @@
 #define SPI_DIV 	(((F_CLK * 1000) / SPI_CLK) / 2 - 1)
 
 static volatile uint32_t * const spi = (void *)(SPI_CTRL_ADDR);
+static volatile uint64_t * const host = (void *)(HOST_BOOT_REG_ADDR);
 
 static inline uint8_t spi_xfer(uint8_t d)
 {
@@ -227,19 +228,27 @@ static int copy(void)
 
 int main(void)
 {
+	// Enable UART TX
 	REG32(uart, UART_REG_TXCTRL) = UART_TXEN;
 
-	kputs("INIT");
-	sd_poweron();
-	if (sd_cmd0() ||
-	    sd_cmd8() ||
-	    sd_acmd41() ||
-	    sd_cmd58() ||
-	    sd_cmd16() ||
-	    copy()) {
-		kputs("ERROR");
-		return 1;
+	// Waiting for Host to copy the OS
+	uint64_t host_boot_reg_val;
+        kputs("Start");
+	kputs("Waiting to move OS");
+	while (host_boot_reg_val != 0x155){
+		host_boot_reg_val = REG64(host , 0);
 	}
+	// kputs("INIT");
+	// sd_poweron();
+	// if (sd_cmd0() ||
+	//     sd_cmd8() ||
+	//     sd_acmd41() ||
+	//     sd_cmd58() ||
+	//     sd_cmd16() ||
+	//     copy()) {
+	// 	kputs("ERROR");
+	// 	return 1;
+	// }
 
 	kputs("BOOT");
 
